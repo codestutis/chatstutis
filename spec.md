@@ -20,8 +20,8 @@ typedef struct {
 typedef struct {
     uint8_t version;
     uint8_t message_type; // chat=0, close_connection=1
-    char[32] username; // might not need this 
     char[1024] message_data;
 } chat_packet;
 
 ```
+
