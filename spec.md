@@ -24,4 +24,3 @@ typedef struct {
 } chat_packet;
 
 ```
-
