@@ -32,20 +32,6 @@ local function parse_common_fields(buffer, subtree)
     return msg_type_item, msg_type_val
 end
 
--- [[
--- wireshark will pass in buffer, pinfo, and tree into your dissector function
--- buffer is the raw packet data
--- pinfo is the packet info/metadata including these fields
---         pinfo.cols.protocol    -- the Protocol column in the packet list
---         pinfo.cols.info        -- the Info column in the packet list
---         pinfo.src_port         -- source port
---         pinfo.dst_port         -- destination port
---         pinfo.src              -- source IP address
---         pinfo.dst              -- destination IP address
---         pinfo.net_src          -- network layer source
--- and tree is the packet detail pane. you can add info in subtrees that will be displayed in the packet in wireshark
---
--- ]]
 function chatstutis.dissector(buffer, pinfo, tree)
     local length = buffer:len()
     if length == 0 then return end
