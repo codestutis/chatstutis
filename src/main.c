@@ -21,14 +21,14 @@ int main(int argc, char *argv[]) {
     }
 
     while(1) {
-        sleep(1);
+        sleep(5);
         for (int i = 0; i < MAX_PEERS; i++) {
-            
             pthread_mutex_lock(&peer_table_mux);
             if (strlen(peer_table[i].username) > 0)
                 printf("%s, %s\n", peer_table[i].username, peer_table[i].addr);
             pthread_mutex_unlock(&peer_table_mux);
         }
+        printf("\n");
     }
     return 0;
 }

@@ -22,64 +22,40 @@ int insert_peer(char *username, char *addr) {
 
 int update_peer_table(char *username, char *addr, int message_type) {
     pthread_mutex_lock(&peer_table_mux);
+
+    // 1. First, handle existing peers (Refresh or Disconnect)
     for (int i = 0; i < MAX_PEERS; i++) {
-        if (strlen(peer_table[i].username) == 0) {
+        if (strlen(peer_table[i].username) > 0) {
+            // Check for timeout
             if (time(NULL) - peer_table[i].last_seen > 20) {
-                // timeout peer
-                memset(peer_table[i].username, 0,
-                       sizeof(peer_table[i].username));
-                peer_table[i].username[0] = '\0';
-                memset(peer_table[i].addr, 0, sizeof(peer_table[i].addr));
-                peer_table[i].addr[0] = '\0';
-                
+                memset(&peer_table[i], 0, sizeof(peer));
+                continue;
+            }
+
+            // Check for match
+            if (strcmp(username, peer_table[i].username) == 0 &&
+                strcmp(addr, peer_table[i].addr) == 0) {
+
+                if (message_type == 1) { // Disconnect
+                    memset(&peer_table[i], 0, sizeof(peer));
+                } else if (message_type == 0) { // Refresh
+                    peer_table[i].last_seen = time(NULL);
+                }
                 pthread_mutex_unlock(&peer_table_mux);
                 return 0;
             }
-        }
-        if (strcmp(username, peer_table[i].username) == 0 && strcmp(addr, peer_table[i].addr) == 0) {
-            if (message_type == 1) {
-                // disconnect peer
-                memset(peer_table[i].username, 0,
-                       sizeof(peer_table[i].username));
-                peer_table[i].username[0] = '\0';
-                memset(peer_table[i].addr, 0, sizeof(peer_table[i].addr));
-                peer_table[i].addr[0] = '\0';
-                pthread_mutex_unlock(&peer_table_mux);
-                return 0;
-            } else if (message_type == 0) {
-                // refresh time stamp
-                peer_table[i].last_seen = time(NULL);
-                
-                pthread_mutex_unlock(&peer_table_mux);
-                return 0;
-            } else {
-                pthread_mutex_unlock(&peer_table_mux);
-                return 1;
-            }
-            pthread_mutex_unlock(&peer_table_mux);
-            return 0;
         }
     }
-    // peer not in table
-    if (message_type == 1) {
-        // ???
-        pthread_mutex_unlock(&peer_table_mux);
-        return 1;
-    } else if (message_type == 0) {
-        // insert peer into table
-        int err = insert_peer(username, addr);
-        if (err) {
-            pthread_mutex_unlock(&peer_table_mux);
-            return 1;
-        }
 
-    } else {
+    // 2. If we reach here, it's a new peer
+    if (message_type == 0) {
+        int err = insert_peer(username, addr);
         pthread_mutex_unlock(&peer_table_mux);
-        return 1;
+        return err;
     }
 
     pthread_mutex_unlock(&peer_table_mux);
-    return 0;
+    return 1;
 }
 
 static void *sender_thread(void *arg) {
