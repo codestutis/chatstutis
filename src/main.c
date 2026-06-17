@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "peer_discovery.h"
 
-int main(int argc, char *argv[]) { 
+int main(int argc, char *argv[]) {
 
     /*
      * start TUI 
@@ -14,8 +14,6 @@ int main(int argc, char *argv[]) {
     /*
      * when user selects a peer from the TUI, establish a TCP connection
      */
-    
-    printf("Hello world\n");
 
     if (discover_peers()) {
         fprintf(stderr, "discover_peers() failed\n");
@@ -24,6 +22,13 @@ int main(int argc, char *argv[]) {
 
     while(1) {
         sleep(1);
+        for (int i = 0; i < MAX_PEERS; i++) {
+            
+            pthread_mutex_lock(&peer_table_mux);
+            if (strlen(peer_table[i].username) > 0)
+                printf("%s, %s\n", peer_table[i].username, peer_table[i].addr);
+            pthread_mutex_unlock(&peer_table_mux);
+        }
     }
     return 0;
 }

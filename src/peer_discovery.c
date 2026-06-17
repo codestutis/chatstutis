@@ -4,9 +4,87 @@
 #include <string.h>
 #include <sys/socket.h>
 
+pthread_mutex_t peer_table_mux = PTHREAD_MUTEX_INITIALIZER;
+peer peer_table[MAX_PEERS];
+int discovery_sock = -1;
+
+int insert_peer(char *username, char *addr) {
+    for (int i = 0; i < MAX_PEERS; i++) {
+        if (strlen(peer_table[i].username) == 0) {
+            strcpy(peer_table[i].username, username);
+            strcpy(peer_table[i].addr, addr);
+            peer_table[i].last_seen = time(NULL);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int update_peer_table(char *username, char *addr, int message_type) {
+    pthread_mutex_lock(&peer_table_mux);
+    for (int i = 0; i < MAX_PEERS; i++) {
+        if (strlen(peer_table[i].username) == 0) {
+            if (time(NULL) - peer_table[i].last_seen > 20) {
+                // timeout peer
+                memset(peer_table[i].username, 0,
+                       sizeof(peer_table[i].username));
+                peer_table[i].username[0] = '\0';
+                memset(peer_table[i].addr, 0, sizeof(peer_table[i].addr));
+                peer_table[i].addr[0] = '\0';
+                
+                pthread_mutex_unlock(&peer_table_mux);
+                return 0;
+            }
+        }
+        if (strcmp(username, peer_table[i].username) == 0 && strcmp(addr, peer_table[i].addr) == 0) {
+            if (message_type == 1) {
+                // disconnect peer
+                memset(peer_table[i].username, 0,
+                       sizeof(peer_table[i].username));
+                peer_table[i].username[0] = '\0';
+                memset(peer_table[i].addr, 0, sizeof(peer_table[i].addr));
+                peer_table[i].addr[0] = '\0';
+                pthread_mutex_unlock(&peer_table_mux);
+                return 0;
+            } else if (message_type == 0) {
+                // refresh time stamp
+                peer_table[i].last_seen = time(NULL);
+                
+                pthread_mutex_unlock(&peer_table_mux);
+                return 0;
+            } else {
+                pthread_mutex_unlock(&peer_table_mux);
+                return 1;
+            }
+            pthread_mutex_unlock(&peer_table_mux);
+            return 0;
+        }
+    }
+    // peer not in table
+    if (message_type == 1) {
+        // ???
+        pthread_mutex_unlock(&peer_table_mux);
+        return 1;
+    } else if (message_type == 0) {
+        // insert peer into table
+        int err = insert_peer(username, addr);
+        if (err) {
+            pthread_mutex_unlock(&peer_table_mux);
+            return 1;
+        }
+
+    } else {
+        pthread_mutex_unlock(&peer_table_mux);
+        return 1;
+    }
+
+    pthread_mutex_unlock(&peer_table_mux);
+    return 0;
+}
+
 static void *sender_thread(void *arg) {
     (void)arg;
-    
+
     struct sockaddr_in dest;
     memset(&dest, 0, sizeof(dest));
     dest.sin_family = AF_INET;
@@ -31,7 +109,7 @@ static void *sender_thread(void *arg) {
 
 static void *receiver_thread(void *arg) {
     (void)arg;
-    
+
     struct sockaddr_in src;
     socklen_t src_len = sizeof(src);
     peer_discover_packet pkt;
@@ -43,20 +121,18 @@ static void *receiver_thread(void *arg) {
             perror("recvfrom() failed");
             continue;
         }
-        if (n != sizeof(pkt)) continue;
+        if (n != sizeof(pkt))
+            continue;
         char sender_ip[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &src.sin_addr, sender_ip, sizeof(sender_ip));
 
-        if (pkt.message_type == 0) {
-            printf("discovered peer: %s (%s)\n", pkt.username, sender_ip);
-        } else if (pkt.message_type == 1) {
-            printf("peer disconnected: %s (%s)\n", pkt.username, sender_ip);
-        }
+        update_peer_table(pkt.username, sender_ip, pkt.message_type);
     }
     return NULL;
 }
 
 int discover_peers() {
+    initialize_peer_table();
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
