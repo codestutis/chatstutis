@@ -22,32 +22,36 @@ int insert_peer(char *username, char *addr) {
 
 int update_peer_table(char *username, char *addr, int message_type) {
     pthread_mutex_lock(&peer_table_mux);
+    time_t now = time(NULL);
 
-    // 1. First, handle existing peers (Refresh or Disconnect)
+    // expire peers past the DEAD_INTERVAL
     for (int i = 0; i < MAX_PEERS; i++) {
         if (strlen(peer_table[i].username) > 0) {
-            // Check for timeout
-            if (time(NULL) - peer_table[i].last_seen > 20) {
+            if (now - peer_table[i].last_seen > DEAD_INTERVAL) {
+                // Clear the entry
                 memset(&peer_table[i], 0, sizeof(peer));
-                continue;
-            }
-
-            // Check for match
-            if (strcmp(username, peer_table[i].username) == 0 &&
-                strcmp(addr, peer_table[i].addr) == 0) {
-
-                if (message_type == 1) { // Disconnect
-                    memset(&peer_table[i], 0, sizeof(peer));
-                } else if (message_type == 0) { // Refresh
-                    peer_table[i].last_seen = time(NULL);
-                }
-                pthread_mutex_unlock(&peer_table_mux);
-                return 0;
             }
         }
     }
 
-    // 2. If we reach here, it's a new peer
+    // handle the current incoming packet
+    for (int i = 0; i < MAX_PEERS; i++) {
+        // Look for an existing match to refresh or disconnect
+        if (strlen(peer_table[i].username) > 0 &&
+            strcmp(username, peer_table[i].username) == 0 &&
+            strcmp(addr, peer_table[i].addr) == 0) {
+
+            if (message_type == 1) { // Disconnect
+                memset(&peer_table[i], 0, sizeof(peer));
+            } else if (message_type == 0) { // Refresh
+                peer_table[i].last_seen = now;
+            }
+            pthread_mutex_unlock(&peer_table_mux);
+            return 0;
+        }
+    }
+
+    // no match found, insert a new peer
     if (message_type == 0) {
         int err = insert_peer(username, addr);
         pthread_mutex_unlock(&peer_table_mux);
