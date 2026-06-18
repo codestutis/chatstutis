@@ -51,8 +51,4 @@ static inline void initialize_peer_table() {
  */
 int discover_peers();
 
-static void *sender_thread(void *arg);
-
-static void *receiver_thread(void *arg);
-
 #endif

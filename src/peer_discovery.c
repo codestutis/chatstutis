@@ -70,6 +70,7 @@ static void *sender_thread(void *arg) {
     dest.sin_family = AF_INET;
     dest.sin_port = htons(45678);
     dest.sin_addr.s_addr = inet_addr(BCAST_ADDR);
+    // dest.sin_addr.s_addr = inet_addr("10.0.0.255");
 
     peer_discover_packet pkt;
     memset(&pkt, 0, sizeof(pkt));
