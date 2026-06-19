@@ -92,6 +92,7 @@ int init_tui() {
     getmaxyx(stdscr, row, col);
 
     WINDOW *peer_window = newwin(row, col / 2, 0, 0);
+    // WINDOW *message_window = newwin(row, col / 2, 0, col / 2);
 
     int running = 1;
     while (running) {

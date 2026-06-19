@@ -7,6 +7,7 @@
 pthread_mutex_t peer_table_mux = PTHREAD_MUTEX_INITIALIZER;
 peer_t peer_table[MAX_PEERS];
 int discovery_sock = -1;
+extern char username[32];
 
 int insert_peer(char *username, char *addr) {
     for (int i = 0; i < MAX_PEERS; i++) {
@@ -76,7 +77,7 @@ static void *sender_thread(void *arg) {
     memset(&pkt, 0, sizeof(pkt));
     pkt.version = 1;
     pkt.message_type = 0;
-    strncpy(pkt.username, "test_user", sizeof(pkt.username) - 1);
+    strncpy(pkt.username, username, sizeof(pkt.username) - 1);
 
     while (1) {
         if (sendto(discovery_sock, &pkt, sizeof(pkt), 0,
