@@ -24,10 +24,10 @@ typedef struct {
     char username[32];
     char addr[INET_ADDRSTRLEN];
     time_t last_seen;
-} peer;
+} peer_t;
 
 extern pthread_mutex_t peer_table_mux;
-extern peer peer_table[MAX_PEERS];
+extern peer_t peer_table[MAX_PEERS];
 extern int discovery_sock;
 
 typedef struct {

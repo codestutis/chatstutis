@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 
 pthread_mutex_t peer_table_mux = PTHREAD_MUTEX_INITIALIZER;
-peer peer_table[MAX_PEERS];
+peer_t peer_table[MAX_PEERS];
 int discovery_sock = -1;
 
 int insert_peer(char *username, char *addr) {
@@ -29,7 +29,7 @@ int update_peer_table(char *username, char *addr, int message_type) {
         if (strlen(peer_table[i].username) > 0) {
             if (now - peer_table[i].last_seen > DEAD_INTERVAL) {
                 // Clear the entry
-                memset(&peer_table[i], 0, sizeof(peer));
+                memset(&peer_table[i], 0, sizeof(peer_t));
             }
         }
     }
@@ -42,7 +42,7 @@ int update_peer_table(char *username, char *addr, int message_type) {
             strcmp(addr, peer_table[i].addr) == 0) {
 
             if (message_type == 1) { // Disconnect
-                memset(&peer_table[i], 0, sizeof(peer));
+                memset(&peer_table[i], 0, sizeof(peer_t));
             } else if (message_type == 0) { // Refresh
                 peer_table[i].last_seen = now;
             }
