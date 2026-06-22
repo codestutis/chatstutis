@@ -3,6 +3,8 @@
 #include <ncurses.h>
 #include <pthread.h>
 
+#define KEY_ESC 27
+
 int peer_index(peer_t *curr) {
     pthread_mutex_lock(&peer_table_mux);
     for (int i = 0; i < MAX_PEERS; i++) {
@@ -83,6 +85,7 @@ int init_tui() {
     keypad(stdscr, TRUE);
     timeout(100);
     curs_set(0);
+    set_escdelay(50);
 
     // this is probably unsafe
     peer_t selected_peer = {0};
@@ -99,7 +102,7 @@ int init_tui() {
         int ch = getch();
 
         switch (ch) {
-        case 'q':
+        case KEY_ESC:
             running = 0;
             break;
         case KEY_UP:

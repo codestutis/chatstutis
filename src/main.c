@@ -1,5 +1,6 @@
 #include "peer_discovery.h"
 #include "tui.h"
+#include "chat.h"
 #include <stdio.h>
 
 char username[32];
@@ -23,6 +24,14 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "discover_peers() failed\n");
         return 1;
     }
+
+    /*
+     * listen for TCP connections for chats
+     */
+    // if (init_chat_listener()) {
+    //     fprintf(stderr, "init_chat_listener() failed\n");
+    //     return 1;
+    // }
 
     /*
      * start TUI

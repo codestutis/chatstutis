@@ -4,4 +4,6 @@
 #include <ncurses.h>
 
 int init_tui();
+
+void print_message();
 #endif
