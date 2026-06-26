@@ -33,6 +33,6 @@ int init_chat_listener();
 /*
  * connect to `peer_t p`
  */
-void send_chat(peer_t *p);
+void send_chat(peer_t *p, const char *, int);
 
 #endif

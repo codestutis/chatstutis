@@ -6,6 +6,11 @@
 
 #define KEY_ESC 27
 
+static char msg_input_buf[MAX_MESSAGE_LENGTH];
+static int msg_input_buf_end_idx;
+
+// static char msg_hist_buf[MAX_MSG_HIST_LEN];
+
 int peer_index(peer_t *curr) {
     pthread_mutex_lock(&peer_table_mux);
     for (int i = 0; i < MAX_PEERS; i++) {
@@ -134,7 +139,7 @@ int init_tui() {
             next_peer(&selected_peer);
         } else if (ch == KEY_ENTER) {
             // send
-            send_chat(&selected_peer);
+            send_chat(&selected_peer, msg_input_buf, msg_input_buf_end_idx);
         } else if (ch >= 32 && ch < 127) {
             append_buffer(ch);
         } else if (ch == 127) {

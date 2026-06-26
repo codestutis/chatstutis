@@ -34,15 +34,16 @@ void *listen_chat_conns(void *args) {
                     perror("accept() failed");
                     return NULL;
                 }
-                
+
                 FD_SET(socket_client, &master);
-                if (socket_client > max_socket) 
+                if (socket_client > max_socket)
                     max_socket = socket_client;
 
             } else {
                 // read from existing connection
                 chat_packet_t msg;
-                int pkt_len = MAX_MESSAGE_LENGTH + MAX_USERNAME_LEN + HEADER_LEN;
+                int pkt_len =
+                    MAX_MESSAGE_LENGTH + MAX_USERNAME_LEN + HEADER_LEN;
                 int bytes_received = recv(i, &msg, pkt_len, 0);
                 if (bytes_received < 1 || msg.message_type == 1) {
                     FD_CLR(i, &master);
@@ -96,7 +97,7 @@ int init_chat_listener() {
     return 0;
 }
 
-void send_chat(peer_t *p) {
+void send_chat(peer_t *p, const char *msg, int msg_len) {
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_socktype = SOCK_STREAM;
@@ -108,7 +109,8 @@ void send_chat(peer_t *p) {
     }
 
     int socket_peer;
-    socket_peer = socket(peer_address->ai_family, peer_address->ai_socktype, peer_address->ai_protocol);
+    socket_peer = socket(peer_address->ai_family, peer_address->ai_socktype,
+                         peer_address->ai_protocol);
     if (socket_peer < 0) {
         perror("socket() failed");
         return;
@@ -121,8 +123,9 @@ void send_chat(peer_t *p) {
     freeaddrinfo(peer_address);
 
     // TODO: send remaining bytes if not all sent!!
-    int bytes_sent = send(socket_peer, msg_input_buf, msg_input_buf_end_idx, NULL);
+    send(socket_peer, msg, msg_len, 0);
 
-    // TODO: better way of managing connections... new connection per message is stupid
+    // TODO: better way of managing connections... new connection per message is
+    // stupid
     close(socket_peer);
 }
