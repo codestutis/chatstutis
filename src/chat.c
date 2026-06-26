@@ -1,6 +1,8 @@
 #include "chat.h"
 #include "peer_discovery.h"
+#include "tui.h"
 #include <pthread.h>
+#include <stdlib.h>
 
 static int socket_listen;
 
@@ -92,4 +94,35 @@ int init_chat_listener() {
         return 1;
     }
     return 0;
+}
+
+void send_chat(peer_t *p) {
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_socktype = SOCK_STREAM;
+    struct addrinfo *peer_address;
+    int status = getaddrinfo(p->addr, CHAT_PORT, &hints, &peer_address);
+    if (status != 0) {
+        fprintf(stderr, "getaddrinfo() failed: %s\n", gai_strerror(status));
+        return;
+    }
+
+    int socket_peer;
+    socket_peer = socket(peer_address->ai_family, peer_address->ai_socktype, peer_address->ai_protocol);
+    if (socket_peer < 0) {
+        perror("socket() failed");
+        return;
+    }
+
+    if (connect(socket_peer, peer_address->ai_addr, peer_address->ai_addrlen)) {
+        fprintf(stderr, "connect() fail");
+        return;
+    }
+    freeaddrinfo(peer_address);
+
+    // TODO: send remaining bytes if not all sent!!
+    int bytes_sent = send(socket_peer, msg_input_buf, msg_input_buf_end_idx, NULL);
+
+    // TODO: better way of managing connections... new connection per message is stupid
+    close(socket_peer);
 }

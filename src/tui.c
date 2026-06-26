@@ -1,4 +1,5 @@
 #include "tui.h"
+#include "chat.h"
 #include "peer_discovery.h"
 #include <ncurses.h>
 #include <pthread.h>
@@ -21,7 +22,7 @@ int peer_index(peer_t *curr) {
 int next_peer(peer_t *curr) {
     int p_idx = peer_index(curr);
     p_idx++;
-    if (p_idx >= MAX_PEERS) 
+    if (p_idx >= MAX_PEERS)
         return 1;
     pthread_mutex_lock(&peer_table_mux);
     for (int i = p_idx; i < MAX_PEERS; i++) {
@@ -38,8 +39,8 @@ int next_peer(peer_t *curr) {
 
 int prev_peer(peer_t *curr) {
     int p_idx = peer_index(curr);
-    p_idx--; 
-    if (p_idx < 0) 
+    p_idx--;
+    if (p_idx < 0)
         return 1;
     pthread_mutex_lock(&peer_table_mux);
     for (int i = p_idx; i >= 0; i--) {
@@ -53,32 +54,55 @@ int prev_peer(peer_t *curr) {
     return 1;
 }
 
-void draw_peers(WINDOW *peer_window, peer_t selected_peer) {
-    wclear(peer_window);
+void draw_peers(WINDOW *peer_w, peer_t selected_peer) {
+    wclear(peer_w);
     pthread_mutex_lock(&peer_table_mux);
     for (int i = 0; i < MAX_PEERS; i++) {
-        wmove(peer_window, i + 1, 1);
+        wmove(peer_w, i + 1, 1);
         if (strlen(peer_table[i].username) > 0) {
             if (strcmp(peer_table[i].username, selected_peer.username) == 0 &&
                 strcmp(peer_table[i].addr, selected_peer.addr) == 0) {
-                wattron(peer_window, A_BOLD | A_UNDERLINE);
+                wattron(peer_w, A_BOLD | A_UNDERLINE);
 
-                wprintw(peer_window, "%s, %s\n", peer_table[i].username,
+                wprintw(peer_w, "%s, %s\n", peer_table[i].username,
                         peer_table[i].addr);
 
-                wattroff(peer_window, A_BOLD | A_UNDERLINE);
+                wattroff(peer_w, A_BOLD | A_UNDERLINE);
             } else {
-                wprintw(peer_window, "%s, %s\n", peer_table[i].username,
+                wprintw(peer_w, "%s, %s\n", peer_table[i].username,
                         peer_table[i].addr);
             }
         }
         pthread_mutex_unlock(&peer_table_mux);
     }
-    box(peer_window, 0, 0);
-    wrefresh(peer_window);
+    box(peer_w, 0, 0);
+    wrefresh(peer_w);
+}
+
+void append_buffer(char c) {
+    if (msg_input_buf_end_idx < MAX_MESSAGE_LENGTH - 1) {
+        msg_input_buf[msg_input_buf_end_idx++] = c;
+    }
+}
+
+void flush_buffer() { msg_input_buf_end_idx = 0; }
+
+void print_buffer(WINDOW *w) {
+    wclear(w);
+    wmove(w, 1, 1);
+    wprintw(w, "%.*s", msg_input_buf_end_idx, msg_input_buf);
+}
+
+char pop_buffer() {
+    if (msg_input_buf_end_idx) {
+        return msg_input_buf[--msg_input_buf_end_idx];
+    }
+    return -1;
 }
 
 int init_tui() {
+    memset(msg_input_buf, 0, sizeof(msg_input_buf));
+    msg_input_buf_end_idx = 0;
     initscr();
     raw();
     noecho();
@@ -94,32 +118,41 @@ int init_tui() {
     int row, col;
     getmaxyx(stdscr, row, col);
 
-    WINDOW *peer_window = newwin(row, col / 2, 0, 0);
-    // WINDOW *message_window = newwin(row, col / 2, 0, col / 2);
+    WINDOW *peer_w = newwin(row, col / 2, 0, 0);
+    WINDOW *msg_hist_w = newwin((row / 5) * 4, col / 2, 0, col / 2);
+    WINDOW *msg_input_w = newwin(row / 5, col / 2, (row / 5) * 4, col / 2);
 
     int running = 1;
     while (running) {
         int ch = getch();
 
-        switch (ch) {
-        case KEY_ESC:
+        if (ch == KEY_ESC) {
             running = 0;
-            break;
-        case KEY_UP:
+        } else if (ch == KEY_UP) {
             prev_peer(&selected_peer);
-            break;
-        case KEY_DOWN:
+        } else if (ch == KEY_DOWN) {
             next_peer(&selected_peer);
-            break;
-        case KEY_ENTER:
-            // open chat/TCP connection
-            break;
+        } else if (ch == KEY_ENTER) {
+            // send
+            send_chat(&selected_peer);
+        } else if (ch >= 32 && ch < 127) {
+            append_buffer(ch);
+        } else if (ch == 127) {
+            // delete
+            pop_buffer();
         }
 
-        draw_peers(peer_window, selected_peer);
+        print_buffer(msg_input_w);
+        draw_peers(peer_w, selected_peer);
+        box(msg_hist_w, 0, 0);
+        box(msg_input_w, 0, 0);
+        wrefresh(msg_hist_w);
+        wrefresh(msg_input_w);
     }
 
-    delwin(peer_window);
+    delwin(peer_w);
+    delwin(msg_hist_w);
+    delwin(msg_input_w);
     endwin();
     return 0;
 }

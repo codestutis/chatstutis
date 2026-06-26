@@ -5,6 +5,18 @@
 #include <stdint.h>
 #define CHAT_PORT "56789"
 #define MAX_MESSAGE_LENGTH 1024
+#include <arpa/inet.h>
+#include <errno.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 typedef struct {
     uint8_t version;
@@ -21,6 +33,6 @@ int init_chat_listener();
 /*
  * connect to `peer_t p`
  */
-void connect_to_peer(peer_t p);
+void send_chat(peer_t *p);
 
 #endif
