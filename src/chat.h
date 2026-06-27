@@ -2,6 +2,7 @@
 #define CHAT_H
 
 #include "peer_discovery.h"
+#include <pthread.h>
 #include <stdint.h>
 #define CHAT_PORT "56789"
 #define MAX_MESSAGE_LENGTH 1024
@@ -24,6 +25,8 @@ typedef struct {
     char from_usr[MAX_USERNAME_LEN];
     char message_data[MAX_MESSAGE_LENGTH];
 } chat_packet_t;
+
+extern void *incoming_chat_buf;
 
 /*
  * setup a listen()/accept() socket on each peer for future TCP connections

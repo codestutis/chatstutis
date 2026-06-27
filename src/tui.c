@@ -1,4 +1,5 @@
 #include "tui.h"
+#include "boundedBuffer.h"
 #include "chat.h"
 #include "peer_discovery.h"
 #include <ncurses.h>
@@ -9,7 +10,11 @@
 static char msg_input_buf[MAX_MESSAGE_LENGTH];
 static int msg_input_buf_end_idx;
 
-// static char msg_hist_buf[MAX_MSG_HIST_LEN];
+static char msg_hist_buf[MAX_MSG_HIST_LEN];
+static char msg_hist_buf_end_idx;
+pthread_mutex_t hist_buf_mux = PTHREAD_MUTEX_INITIALIZER;
+
+extern void *incoming_chat_buf;
 
 int peer_index(peer_t *curr) {
     pthread_mutex_lock(&peer_table_mux);
@@ -78,10 +83,26 @@ void draw_peers(WINDOW *peer_w, peer_t selected_peer) {
                         peer_table[i].addr);
             }
         }
-        pthread_mutex_unlock(&peer_table_mux);
     }
+    pthread_mutex_unlock(&peer_table_mux);
     box(peer_w, 0, 0);
     wrefresh(peer_w);
+}
+
+void write_chat_history() {
+    pthread_mutex_lock(&hist_buf_mux);
+    void *msg = tryGetBuffer(incoming_chat_buf);
+    strcpy(msg_hist_buf, msg);
+    pthread_mutex_unlock(&hist_buf_mux);
+}
+
+void draw_chat_hist(WINDOW *hist_w) {
+    pthread_mutex_lock(&hist_buf_mux);
+    wclear(hist_w);
+    wmove(hist_w, 1, 1);
+    wprintw(hist_w, "%.*s", msg_hist_buf_end_idx, msg_hist_buf);
+    wrefresh(hist_w);
+    pthread_mutex_unlock(&hist_buf_mux);
 }
 
 void append_buffer(char c) {
@@ -108,6 +129,9 @@ char pop_buffer() {
 int init_tui() {
     memset(msg_input_buf, 0, sizeof(msg_input_buf));
     msg_input_buf_end_idx = 0;
+    memset(msg_hist_buf, 0, sizeof(msg_input_buf));
+    msg_hist_buf_end_idx = 0;
+
     initscr();
     raw();
     noecho();

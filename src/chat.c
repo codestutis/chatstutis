@@ -1,12 +1,14 @@
 #include "chat.h"
+#include "boundedBuffer.h"
 #include "peer_discovery.h"
-#include "tui.h"
 #include <pthread.h>
 #include <stdlib.h>
 
 static int socket_listen;
+void *incoming_chat_buf = NULL;
 
 void *listen_chat_conns(void *args) {
+    incoming_chat_buf = createBuffer(64);
     fd_set master;
     FD_ZERO(&master);
     FD_SET(socket_listen, &master);
@@ -59,6 +61,7 @@ void *listen_chat_conns(void *args) {
                 // is a chat packet and is the correct verion:
 
                 // add message to incoming chat buffer to be processed by tui.c
+                putBuffer(incoming_chat_buf, &msg);
             }
         }
     }
@@ -92,6 +95,12 @@ int init_chat_listener() {
 
     if (listen(socket_listen, 10) < 0) {
         perror("listen() failed");
+        return 1;
+    }
+
+    pthread_t listen_chats;
+    if (pthread_create(&listen_chats, NULL, listen_chat_conns, NULL)) {
+        perror("pthread_create() failed");
         return 1;
     }
     return 0;
@@ -128,7 +137,7 @@ void send_chat(peer_t *p, const char *msg, int msg_len) {
         .from_usr = "hi",
     };
     strcpy(pkt.message_data, msg);
-    
+
     // TODO: send remaining bytes if not all sent!!
     send(socket_peer, &pkt, 1058, 0);
 
