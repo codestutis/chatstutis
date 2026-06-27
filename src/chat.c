@@ -6,6 +6,7 @@
 
 static int socket_listen;
 void *incoming_chat_buf = NULL;
+extern char username[32];
 
 void *listen_chat_conns(void *args) {
     fd_set master;
@@ -141,11 +142,12 @@ void send_chat(peer_t *p, const char *msg, int msg_len) {
     }
     freeaddrinfo(peer_address);
 
-    chat_packet_t pkt = {
-        .version = 1,
-        .message_type = 0,
-        .from_usr = "hi",
-    };
+    chat_packet_t pkt;
+    memset(&pkt, 0, sizeof(pkt));
+
+    pkt.version = 1;
+    pkt.message_type = 0;
+    strncpy(pkt.from_usr, username, 32);
     strcpy(pkt.message_data, msg);
 
     // TODO: send remaining bytes if not all sent!!

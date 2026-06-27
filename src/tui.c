@@ -15,6 +15,7 @@ static int msg_hist_buf_end_idx;
 pthread_mutex_t hist_buf_mux = PTHREAD_MUTEX_INITIALIZER;
 
 extern void *incoming_chat_buf;
+extern char username[32];
 
 int peer_index(peer_t *curr) {
     pthread_mutex_lock(&peer_table_mux);
@@ -109,6 +110,21 @@ void write_chat_history() {
 
     free(msg);
 }
+void write_hist_send_message() {
+    pthread_mutex_lock(&hist_buf_mux);
+
+    int written = snprintf(msg_hist_buf + msg_hist_buf_end_idx,
+                           MAX_MSG_HIST_LEN - msg_hist_buf_end_idx, "%s: %s\n",
+                           username, msg_input_buf);
+    if (written > 0) {
+        msg_hist_buf_end_idx += written;
+        if (msg_hist_buf_end_idx >= MAX_MSG_HIST_LEN) {
+            msg_hist_buf_end_idx = MAX_MSG_HIST_LEN - 1;
+        }
+    }
+
+    pthread_mutex_unlock(&hist_buf_mux);
+}
 
 void draw_chat_hist(WINDOW *hist_w) {
     pthread_mutex_lock(&hist_buf_mux);
@@ -177,6 +193,7 @@ int init_tui() {
             next_peer(&selected_peer);
         } else if (ch == '\n') {
             // send
+            write_hist_send_message();
             send_chat(&selected_peer, msg_input_buf, msg_input_buf_end_idx);
             flush_buffer();
         } else if (ch >= 32 && ch < 127) {
