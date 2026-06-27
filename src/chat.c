@@ -8,7 +8,6 @@ static int socket_listen;
 void *incoming_chat_buf = NULL;
 
 void *listen_chat_conns(void *args) {
-    incoming_chat_buf = createBuffer(64);
     fd_set master;
     FD_ZERO(&master);
     FD_SET(socket_listen, &master);
@@ -43,31 +42,42 @@ void *listen_chat_conns(void *args) {
 
             } else {
                 // read from existing connection
-                chat_packet_t msg;
+                chat_packet_t *msg = malloc(sizeof(*msg));
+                if (msg == NULL) {
+                    perror("malloc() failed");
+                    continue;
+                }
+
                 int pkt_len =
                     MAX_MESSAGE_LENGTH + MAX_USERNAME_LEN + HEADER_LEN;
                 int bytes_received = recv(i, &msg, pkt_len, 0);
-                if (bytes_received < 1 || msg.message_type == 1) {
+                if (bytes_received < 1 || msg->message_type == 1) {
+                    free(msg);
                     FD_CLR(i, &master);
                     close(i);
                     continue;
                 }
-                if (msg.version != 1) {
+                if (msg->version != 1) {
                     continue;
                 }
-                if (msg.message_type != 0) {
+                if (msg->message_type != 0) {
                     continue;
                 }
                 // is a chat packet and is the correct verion:
 
                 // add message to incoming chat buffer to be processed by tui.c
-                putBuffer(incoming_chat_buf, &msg);
+                putBuffer(incoming_chat_buf, msg);
             }
         }
     }
 }
 
 int init_chat_listener() {
+    incoming_chat_buf = createBuffer(64);
+    if (incoming_chat_buf == NULL) {
+        fprintf(stderr, "createBuffer() failed\n");
+        return 1;
+    }
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;

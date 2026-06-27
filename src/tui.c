@@ -11,7 +11,7 @@ static char msg_input_buf[MAX_MESSAGE_LENGTH];
 static int msg_input_buf_end_idx;
 
 static char msg_hist_buf[MAX_MSG_HIST_LEN];
-static char msg_hist_buf_end_idx;
+static int msg_hist_buf_end_idx;
 pthread_mutex_t hist_buf_mux = PTHREAD_MUTEX_INITIALIZER;
 
 extern void *incoming_chat_buf;
@@ -90,10 +90,24 @@ void draw_peers(WINDOW *peer_w, peer_t selected_peer) {
 }
 
 void write_chat_history() {
+    chat_packet_t *msg = tryGetBuffer(incoming_chat_buf);
+    if (msg == NULL) {
+        return;
+    }
+
     pthread_mutex_lock(&hist_buf_mux);
-    void *msg = tryGetBuffer(incoming_chat_buf);
-    strcpy(msg_hist_buf, msg);
+    int written = snprintf(msg_hist_buf + msg_hist_buf_end_idx,
+                           MAX_MSG_HIST_LEN - msg_hist_buf_end_idx, "%s: %s\n",
+                           msg->from_usr, msg->message_data);
+    if (written > 0) {
+        msg_hist_buf_end_idx += written;
+        if (msg_hist_buf_end_idx >= MAX_MSG_HIST_LEN) {
+            msg_hist_buf_end_idx = MAX_MSG_HIST_LEN - 1;
+        }
+    }
     pthread_mutex_unlock(&hist_buf_mux);
+
+    free(msg);
 }
 
 void draw_chat_hist(WINDOW *hist_w) {
@@ -174,6 +188,8 @@ int init_tui() {
 
         print_buffer(msg_input_w);
         draw_peers(peer_w, selected_peer);
+        write_chat_history();
+        draw_chat_hist(msg_hist_w);
         box(msg_hist_w, 0, 0);
         box(msg_input_w, 0, 0);
         wrefresh(msg_hist_w);
