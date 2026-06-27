@@ -181,7 +181,7 @@ int init_tui() {
             flush_buffer();
         } else if (ch >= 32 && ch < 127) {
             append_buffer(ch);
-        } else if (ch == 127) {
+        } else if (ch == 127 || ch == KEY_BACKSPACE || ch == 8) {
             // delete
             pop_buffer();
         }

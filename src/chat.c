@@ -50,7 +50,7 @@ void *listen_chat_conns(void *args) {
 
                 int pkt_len =
                     MAX_MESSAGE_LENGTH + MAX_USERNAME_LEN + HEADER_LEN;
-                int bytes_received = recv(i, &msg, pkt_len, 0);
+                int bytes_received = recv(i, msg, pkt_len, 0);
                 if (bytes_received < 1 || msg->message_type == 1) {
                     free(msg);
                     FD_CLR(i, &master);
