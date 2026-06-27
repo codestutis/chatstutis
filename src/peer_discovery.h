@@ -19,9 +19,11 @@
 #define DEAD_INTERVAL 20
 #define DISCOVERY_PORT "45678"
 #define MAX_PEERS 64
+#define MAX_USERNAME_LEN 32
+#define HEADER_LEN 2
 
 typedef struct {
-    char username[32];
+    char username[MAX_USERNAME_LEN];
     char addr[INET_ADDRSTRLEN];
     time_t last_seen;
 } peer_t;
