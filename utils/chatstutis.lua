@@ -56,9 +56,10 @@ function chatstutis.dissector(buffer, pinfo, tree)
         pinfo.cols.info:set("Chat")
         local subtree = tree:add(chatstutis, buffer(), "Chatstutis Chat Packet");
         local type_item, type_val = parse_common_fields(buffer, subtree);
-        subtree:add(message, buffer(2, 1024));
+        subtree:add(username, buffer(2, 32))
+        subtree:add(message, buffer(34, 1024));
 
-        local type_name = DISCOVERY_TYPES[type_val] or
+        local type_name = CHAT_TYPES[type_val] or
             string.format("Unknown (0x%02x)", type_val)
         type_item:append_text(" (" .. type_name .. ")")
         pinfo.cols.info:set("Chat Packet [" .. type_name .. "]")

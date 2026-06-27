@@ -122,8 +122,15 @@ void send_chat(peer_t *p, const char *msg, int msg_len) {
     }
     freeaddrinfo(peer_address);
 
+    chat_packet_t pkt = {
+        .version = 1,
+        .message_type = 0,
+        .from_usr = "hi",
+    };
+    strcpy(pkt.message_data, msg);
+    
     // TODO: send remaining bytes if not all sent!!
-    send(socket_peer, msg, msg_len, 0);
+    send(socket_peer, &pkt, 1058, 0);
 
     // TODO: better way of managing connections... new connection per message is
     // stupid

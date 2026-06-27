@@ -95,7 +95,7 @@ void flush_buffer() { msg_input_buf_end_idx = 0; }
 void print_buffer(WINDOW *w) {
     wclear(w);
     wmove(w, 1, 1);
-    wprintw(w, "%.*s", msg_input_buf_end_idx, msg_input_buf);
+    wprintw(w, "> %.*s", msg_input_buf_end_idx, msg_input_buf);
 }
 
 char pop_buffer() {
@@ -137,9 +137,10 @@ int init_tui() {
             prev_peer(&selected_peer);
         } else if (ch == KEY_DOWN) {
             next_peer(&selected_peer);
-        } else if (ch == KEY_ENTER) {
+        } else if (ch == '\n') {
             // send
             send_chat(&selected_peer, msg_input_buf, msg_input_buf_end_idx);
+            flush_buffer();
         } else if (ch >= 32 && ch < 127) {
             append_buffer(ch);
         } else if (ch == 127) {
